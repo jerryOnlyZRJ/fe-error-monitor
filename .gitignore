@@ -1,0 +1,17 @@
+#node_modules
+node_modules/
+
+#logs
+logs/
+
+#test coverage
+docs/coverage
+
+#MAC
+.DS_Store
+
+#package-lock
+package-lock.json
+
+#dist
+dist/
