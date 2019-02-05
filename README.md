@@ -1,2 +1,2 @@
-# js-library-scaffold
-👷JavaScript库脚手架
+# fe-error-monitor
+🐞前端容错监控工具
