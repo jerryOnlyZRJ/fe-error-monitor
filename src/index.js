@@ -67,6 +67,29 @@ class ErrorMonitor {
             }
             this.addResult('unhandledrejection', unhandledrejectionError)
         })
+        // 监控AJAX Error
+        // fetch error
+        if ('fetch' in window && typeof window.fetch === 'function') {
+            const originFetch = window.fetch
+            window.fetch = function (input, options) {
+                return originFetch.apply(this, arguments).then(res => {
+                    if (!res.ok) {
+                        originFetch(input, options).then(res => res.text()).then(response => {
+                            const fetchErrorResult = {
+                                type: 'FetchError',
+                                src: res.url,
+                                status: res.status,
+                                method: options.method,
+                                response
+                            }
+                            this.addResult('ajax', fetchErrorResult)
+                        })
+                    }
+                    return res
+                })
+            }
+        }
+        // XMLHttpRequest
     }
 }
 
