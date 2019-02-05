@@ -19,6 +19,7 @@ class ErrorMonitor {
     }
     addResult(type, result = {}) {
         result.time = new Date().getTime()
+        result.url = window.location.href
         if (this.monitorResult[type]) {
             this.monitorResult[type].push(result)
         } else {
@@ -33,13 +34,13 @@ class ErrorMonitor {
             const onerrorMonitorResult = {
                 type: 'Error',
                 message,
-                url: window.location.href,
                 src,
                 line,
                 column,
                 error
             }
             this.addResult('error', onerrorMonitorResult)
+            return true
         }
         // 监听资源加载错误
         window.addEventListener('error', e => {
@@ -50,7 +51,6 @@ class ErrorMonitor {
             xhr.onload = response => {
                 const resourceErrorMonitorResult = {
                     type: 'ResourceError',
-                    url: errorObject.baseURI,
                     outerHTML: errorObject.outerHTML,
                     src: errorObject.src,
                     status: response.status
@@ -59,7 +59,14 @@ class ErrorMonitor {
             }
             return false
         })
-
+        // 监听PromiseError
+        window.addEventListener('unhandledrejection', error => {
+            const unhandledrejectionError = {
+                type: 'Unhandledrejection',
+                message: error.reason
+            }
+            this.addResult('unhandledrejection', unhandledrejectionError)
+        })
     }
 }
 
