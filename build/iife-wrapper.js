@@ -14,7 +14,7 @@
 
 (function (root, factory) {
     if (typeof module === 'undefined') {
-      root.PerformanceMonitor = factory()
+      root.ErrorMonitor = factory()
     } else {
       module.exports = factory()
     }

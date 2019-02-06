@@ -12,12 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import PerformanceMonitor from '../src/index.js'
+import ErrorMonitor from '../src/index.js'
 
 if (typeof module !== 'undefined' && module.exports) {
-    module.exports = PerformanceMonitor
+    module.exports = ErrorMonitor
 } else if (typeof define === 'function' && define.amd) {
-    define('PerformanceMonitor', [], () => PerformanceMonitor)
+    define('ErrorMonitor', [], () => ErrorMonitor)
 } else {
-    window.PerformanceMonitor = PerformanceMonitor
+    window.ErrorMonitor = ErrorMonitor
 }

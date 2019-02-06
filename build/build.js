@@ -65,7 +65,8 @@ async function build() {
         input: outputFormat === 'iife' ? path.join(cwd, pkg.main) : path.join(cwd, 'build/umd-wrapper.js'),
         plugins: [
             babel({
-                exclude: /node_modules/
+                exclude: /node_modules/,
+                runtimeHelpers: true
             }),
             commonjs(),
             resolve()
