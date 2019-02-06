@@ -78,8 +78,6 @@ async function build() {
     // remove jsdoc
     code = code.replace(jsDocRegExp, '')
 
-    console.log(code)
-
     if (outputFormat === 'iife') {
         code = fs.readFileSync(path.join(cwd, 'build/iife-wrapper.js')).toString().replace('INSERT', code.split('\n').slice(1, -3).join('\n')).replace("'use strict'", '"use strict"')
     }

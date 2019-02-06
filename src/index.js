@@ -30,100 +30,124 @@ export default class ErrorMonitor {
         }
     }
     init() {
-        //  重写window.onerror
-        const oldWindowOnerror = window.onerror
-        window.onerror = (message, src, line, column, error) => {
-            oldWindowOnerror && oldWindowOnerror(message, src, line, column, error)
-            const onerrorMonitorResult = {
-                type: 'Error',
-                message,
-                src,
-                line,
-                column,
-                error
+        // 重写window.onerror
+        const rewriteWindowOnerror = () => {
+            const oldWindowOnerror = window.onerror
+            window.onerror = (message, src, line, column, error) => {
+                oldWindowOnerror && oldWindowOnerror(message, src, line, column, error)
+                const onerrorMonitorResult = {
+                    type: 'Error',
+                    message,
+                    src,
+                    line,
+                    column,
+                    error
+                }
+                this.addResult('error', onerrorMonitorResult)
+                return true
             }
-            this.addResult('error', onerrorMonitorResult)
-            return true
         }
+
         // 监听资源加载错误
-        window.addEventListener('error', e => {
-            if (e.target === window) {
-                return
-            }
-            const errorObject = e.target
-            if (errorObject.src) {
-                this.xhr.open('HEAD', errorObject.src)
-                this.xhr.send()
-                this.xhr.onload = response => {
-                    const resourceErrorMonitorResult = {
-                        type: 'ResourceError',
-                        outerHTML: errorObject.outerHTML,
-                        src: errorObject.src,
-                        status: response.target.status,
-                        response: response.target.responseText
-                    }
-                    this.addResult('resourceError', resourceErrorMonitorResult)
+        const resourceErrorMonitor = () => {
+            window.addEventListener('error', e => {
+                if (e.target === window) {
+                    return
                 }
-            }
-            return false
-        }, true)
+                const errorObject = e.target
+                if (errorObject.src) {
+                    this.xhr.open('HEAD', errorObject.src)
+                    this.xhr.send()
+                    this.xhr.onload = response => {
+                        const resourceErrorMonitorResult = {
+                            type: 'ResourceError',
+                            outerHTML: errorObject.outerHTML,
+                            src: errorObject.src,
+                            status: response.target.status,
+                            response: response.target.responseText
+                        }
+                        this.addResult('resourceError', resourceErrorMonitorResult)
+                    }
+                }
+                return false
+            }, true)
+        }
+
         // 监听PromiseError
-        window.addEventListener('unhandledrejection', error => {
-            const unhandledrejectionError = {
-                type: 'Unhandledrejection',
-                message: error.reason
-            }
-            this.addResult('unhandledrejection', unhandledrejectionError)
-        })
-        // 监控AJAX Error
-        // fetch error
-        if ('fetch' in window && typeof window.fetch === 'function') {
-            const originFetch = window.fetch
-            const _this = this
-            window.fetch = function (input, options) {
-                return originFetch.apply(this, arguments).then(res => {
-                    if (!res.ok) {
-                        originFetch(input, options).then(res => res.text()).then(response => {
-                            const fetchErrorResult = {
-                                type: 'FetchError',
-                                src: res.url,
-                                status: res.status,
-                                method: options && options.method || 'GET',
-                                response
-                            }
-                            _this.addResult('ajax', fetchErrorResult)
-                        })
-                    }
-                    return res
-                })
-            }
-        }
-        // XMLHttpRequest
-        const originXhrOpen = XMLHttpRequest.prototype.open
-        const originXhrSend = XMLHttpRequest.prototype.send
-        const addResult = this.addResult.bind(this)
-        let XMLMethod = 'GET'
-        XMLHttpRequest.prototype.open = function (method, url) {
-            XMLMethod = method
-            originXhrOpen.apply(this, arguments)
-        }
-        XMLHttpRequest.prototype.send = function (data) {
-            const _this = this
-            originXhrSend.call(_this, data)
-            const oldOnReadyStateChange = _this.onreadystatechange
-            _this.onreadystatechange = function () {
-                if (_this.readyState === 4 && !/20[1-9]/.test(_this.status)) {
-                    const xmlHttpError = {
-                        type: 'XMLHttpRequestError',
-                        src: _this.responseURL,
-                        method: XMLMethod,
-                        status: _this.status,
-                        response: _this.responseText
-                    }
-                    addResult('ajax', xmlHttpError)
+        const promiseErrorMonitor = () => {
+            window.addEventListener('unhandledrejection', error => {
+                const unhandledrejectionError = {
+                    type: 'Unhandledrejection',
+                    message: error.reason
                 }
-                oldOnReadyStateChange && oldOnReadyStateChange.apply(_this, arguments)
+                this.addResult('unhandledrejection', unhandledrejectionError)
+            })
+        }
+
+        // 监控AJAX Error
+        const ajaxErrorMonitor = () => {
+            fetchErrorMonitor()
+            xmlHttpErrorMonitor()
+        }
+
+        // fetch error
+        const fetchErrorMonitor = () => {
+            if ('fetch' in window && typeof window.fetch === 'function') {
+                const originFetch = window.fetch
+                const _this = this
+                window.fetch = function (input, options) {
+                    return originFetch.apply(this, arguments).then(res => {
+                        if (!res.ok) {
+                            originFetch(input, options).then(res => res.text()).then(response => {
+                                const fetchErrorResult = {
+                                    type: 'FetchError',
+                                    src: res.url,
+                                    status: res.status,
+                                    method: options && options.method || 'GET',
+                                    response
+                                }
+                                _this.addResult('ajax', fetchErrorResult)
+                            })
+                        }
+                        return res
+                    })
+                }
             }
         }
+
+        // XMLHttpRequest Error
+        const xmlHttpErrorMonitor = () => {
+            const originXhrOpen = XMLHttpRequest.prototype.open
+            const originXhrSend = XMLHttpRequest.prototype.send
+            const addResult = this.addResult.bind(this)
+            let XMLMethod = 'GET'
+            XMLHttpRequest.prototype.open = function (method, url) {
+                XMLMethod = method
+                originXhrOpen.apply(this, arguments)
+            }
+            XMLHttpRequest.prototype.send = function (data) {
+                const _this = this
+                originXhrSend.call(_this, data)
+                const oldOnReadyStateChange = _this.onreadystatechange
+                _this.onreadystatechange = function () {
+                    if (_this.readyState === 4 && !/20[1-9]/.test(_this.status)) {
+                        const xmlHttpError = {
+                            type: 'XMLHttpRequestError',
+                            src: _this.responseURL,
+                            method: XMLMethod,
+                            status: _this.status,
+                            response: _this.responseText
+                        }
+                        addResult('ajax', xmlHttpError)
+                    }
+                    oldOnReadyStateChange && oldOnReadyStateChange.apply(_this, arguments)
+                }
+            }
+        }
+
+        rewriteWindowOnerror()
+        resourceErrorMonitor()
+        promiseErrorMonitor()
+        ajaxErrorMonitor()
     }
 }
