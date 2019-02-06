@@ -21,6 +21,27 @@ export default class ErrorMonitor {
         this.monitorResult = {}
     }
     /**
+     * 上报数据
+     */
+    uploadMonitorLogs () {
+        if (navigator.sendBeacon && typeof navigator.sendBeacon === 'function') {
+            const headers = {
+                type: 'application/json'
+            }
+            const blob = new window.Blob([JSON.stringify(this.monitorResult)], headers)
+            navigator.sendBeacon(this.options.url, blob)
+        } else if ('fetch' in window) {
+            window.fetch(this.options.url, {
+                method: 'POST',
+                body: JSON.stringify(this.monitorResult)
+            })
+        } else if ('XMLHttpRequest' in window && typeof window.XMLHttpRequest === 'function') {
+            const xhr = new window.XMLHttpRequest()
+            xhr.open('POST', this.options.url)
+            xhr.send(JSON.stringify(this.monitorResult))
+        }
+    }
+    /**
      * 添加捕获的错误结果
      * @param {String} type 错误类型
      * @param {Object} result 错误结果对象
@@ -165,9 +186,28 @@ export default class ErrorMonitor {
             }
         }
 
+        /**
+         * 上报数据
+         */
+        const uploadResult = () => {
+            const oldOnload = window.onload
+            window.onload = e => {
+                if (oldOnload && typeof oldOnload === 'function') {
+                    oldOnload(e)
+                }
+                // 尽量不影响页面主线程
+                if (window.requestIdleCallback) {
+                    window.requestIdleCallback(this.uploadMonitorLogs.bind(this))
+                } else {
+                    setTimeout(this.uploadMonitorLogs.bind(this))
+                }
+            }
+        }
+
         rewriteWindowOnerror()
         resourceErrorMonitor()
         promiseErrorMonitor()
         ajaxErrorMonitor()
+        uploadResult()
     }
 }
