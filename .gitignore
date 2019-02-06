@@ -12,6 +12,3 @@ docs/coverage
 
 #package-lock
 package-lock.json
-
-#dist
-dist/
