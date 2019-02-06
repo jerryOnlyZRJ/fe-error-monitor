@@ -1,0 +1,47 @@
+<!--
+ Copyright 2019 ranjayzheng
+ 
+ Licensed under the Apache License, Version 2.0 (the "License");
+ you may not use this file except in compliance with the License.
+ You may obtain a copy of the License at
+ 
+     http://www.apache.org/licenses/LICENSE-2.0
+ 
+ Unless required by applicable law or agreed to in writing, software
+ distributed under the License is distributed on an "AS IS" BASIS,
+ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ See the License for the specific language governing permissions and
+ limitations under the License.
+-->
+<script src="./dist/fe-error-monitor.js"></script>
+<script>
+    var feErrorMonitor = new ErrorMonitor()
+    feErrorMonitor.init()
+</script>
+
+<body>
+    <!-- 标签资源请求error -->
+    <img src="/404.png">
+    <script>
+        // 普通错误
+        // error
+        // 异步错误
+        setTimeout(() => {
+            error
+        })
+        // Promise error
+        new Promise((resolve) => {
+            resolve();
+        }).then(() => {
+            throw 'promise error'
+        });
+        new Promise((resolve, reject) => {
+            reject(123);
+        })
+        // ajax error
+        fetch('/404.png')
+        var xhr = new XMLHttpRequest()
+        xhr.open('HEAD', '/404.png')
+        xhr.send()
+    </script>
+</body>

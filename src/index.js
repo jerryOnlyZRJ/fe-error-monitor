@@ -13,11 +13,12 @@
 // limitations under the License.
 
 export default class ErrorMonitor {
-    constructor (options = {}) {
+    constructor(options = {}) {
         this.options = options
+        this.xhr = new XMLHttpRequest()
         this.monitorResult = {}
     }
-    addResult (type, result = {}) {
+    addResult(type, result = {}) {
         result.time = new Date().getTime()
         result.url = window.location.href
         if (this.monitorResult[type]) {
@@ -26,11 +27,11 @@ export default class ErrorMonitor {
             this.monitorResult[type] = [result]
         }
     }
-    init () {
+    init() {
         //  重写window.onerror
         const oldWindowOnerror = window.onerror
         window.onerror = (message, src, line, column, error) => {
-            oldWindowOnerror(message, src, line, column, error)
+            oldWindowOnerror && oldWindowOnerror(message, src, line, column, error)
             const onerrorMonitorResult = {
                 type: 'Error',
                 message,
@@ -44,11 +45,13 @@ export default class ErrorMonitor {
         }
         // 监听资源加载错误
         window.addEventListener('error', e => {
+            if (e.target === window) {
+                return
+            }
             const errorObject = e.target
-            var xhr = new XMLHttpRequest()
-            xhr.open('HEAD', errorObject.src)
-            xhr.send()
-            xhr.onload = response => {
+            this.xhr.open('HEAD', errorObject.src)
+            this.xhr.send()
+            this.xhr.onload = response => {
                 const resourceErrorMonitorResult = {
                     type: 'ResourceError',
                     outerHTML: errorObject.outerHTML,
@@ -58,7 +61,7 @@ export default class ErrorMonitor {
                 this.addResult('resourceError', resourceErrorMonitorResult)
             }
             return false
-        })
+        }, true)
         // 监听PromiseError
         window.addEventListener('unhandledrejection', error => {
             const unhandledrejectionError = {
@@ -71,6 +74,7 @@ export default class ErrorMonitor {
         // fetch error
         if ('fetch' in window && typeof window.fetch === 'function') {
             const originFetch = window.fetch
+            const _this = this
             window.fetch = function (input, options) {
                 return originFetch.apply(this, arguments).then(res => {
                     if (!res.ok) {
@@ -79,10 +83,10 @@ export default class ErrorMonitor {
                                 type: 'FetchError',
                                 src: res.url,
                                 status: res.status,
-                                method: options.method,
+                                method: options && options.method || 'GET',
                                 response
                             }
-                            this.addResult('ajax', fetchErrorResult)
+                            _this.addResult('ajax', fetchErrorResult)
                         })
                     }
                     return res
@@ -90,5 +94,31 @@ export default class ErrorMonitor {
             }
         }
         // XMLHttpRequest
+        // const originXhrOpen = XMLHttpRequest.prototype.open
+        // const originXhrSend = XMLHttpRequest.prototype.send
+        // const addResult = this.addResult
+        // let XMLMethod = 'GET'
+        // XMLHttpRequest.prototype.open = function (method, url) {
+        //     XMLMethod = method
+        //     originXhrOpen.apply(this, arguments)
+        // }
+        // XMLHttpRequest.prototype.send = function (data) {
+        //     const _this = this
+        //     originXhrSend.call(_this, data)
+        //     const oldOnReadyStateChange = _this.onreadystatechange
+        //     _this.onreadystatechange = function () {
+        //         if (_this.readyState === 4 && !/20[1-9]/.test(_this.status)) {
+        //             const xmlHttpError = {
+        //                 type: 'XMLHttpRequestError',
+        //                 src: _this.responseURL,
+        //                 method: XMLMethod,
+        //                 status: _this.status,
+        //                 response: _this.responseText
+        //             }
+        //             addResult('ajax', xmlHttpError)
+        //         }
+        //         oldOnReadyStateChange && oldOnReadyStateChange.apply(_this, arguments)
+        //     }
+        // }
     }
 }
