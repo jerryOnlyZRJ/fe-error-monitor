@@ -12,9 +12,8 @@ module.exports = {
     },
     "rules": {
         "no-unreachable": 2,
-        "no-console": 0
-    },
-    "rules": {
+        "no-console": 0,
+        "no-mixed-operators": 0,
         "indent": ["error", 4]
     }
 };

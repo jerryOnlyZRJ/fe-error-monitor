@@ -13,14 +13,19 @@
 // limitations under the License.
 
 export default class ErrorMonitor {
-    constructor(options = {}) {
+    constructor (options = {}) {
         this.options = options
         this.xhr = new XMLHttpRequest()
         this.xhr.send = XMLHttpRequest.prototype.send
         this.xhr.open = XMLHttpRequest.prototype.open
         this.monitorResult = {}
     }
-    addResult(type, result = {}) {
+    /**
+     * 添加捕获的错误结果
+     * @param {String} type 错误类型
+     * @param {Object} result 错误结果对象
+     */
+    addResult (type, result = {}) {
         result.time = new Date().getTime()
         result.url = window.location.href
         if (this.monitorResult[type]) {
@@ -29,8 +34,13 @@ export default class ErrorMonitor {
             this.monitorResult[type] = [result]
         }
     }
-    init() {
-        // 重写window.onerror
+    /**
+     * 初始化控件
+     */
+    init () {
+        /**
+         * 监听普通Error抛出
+         */
         const rewriteWindowOnerror = () => {
             const oldWindowOnerror = window.onerror
             window.onerror = (message, src, line, column, error) => {
@@ -48,7 +58,9 @@ export default class ErrorMonitor {
             }
         }
 
-        // 监听资源加载错误
+        /**
+         * 监听资源加载错误
+         */
         const resourceErrorMonitor = () => {
             window.addEventListener('error', e => {
                 if (e.target === window) {
@@ -73,7 +85,9 @@ export default class ErrorMonitor {
             }, true)
         }
 
-        // 监听PromiseError
+        /**
+         * 监听Promise Error
+         */
         const promiseErrorMonitor = () => {
             window.addEventListener('unhandledrejection', error => {
                 const unhandledrejectionError = {
@@ -84,13 +98,17 @@ export default class ErrorMonitor {
             })
         }
 
-        // 监控AJAX Error
+        /**
+         * 监听AJAX Error
+         */
         const ajaxErrorMonitor = () => {
             fetchErrorMonitor()
             xmlHttpErrorMonitor()
         }
 
-        // fetch error
+        /**
+         * Fetch Error
+         */
         const fetchErrorMonitor = () => {
             if ('fetch' in window && typeof window.fetch === 'function') {
                 const originFetch = window.fetch
@@ -115,7 +133,9 @@ export default class ErrorMonitor {
             }
         }
 
-        // XMLHttpRequest Error
+        /**
+         * XMLHttpRequest Error
+         */
         const xmlHttpErrorMonitor = () => {
             const originXhrOpen = XMLHttpRequest.prototype.open
             const originXhrSend = XMLHttpRequest.prototype.send
