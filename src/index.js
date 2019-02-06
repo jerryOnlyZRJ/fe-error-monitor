@@ -16,6 +16,8 @@ export default class ErrorMonitor {
     constructor(options = {}) {
         this.options = options
         this.xhr = new XMLHttpRequest()
+        this.xhr.send = XMLHttpRequest.prototype.send
+        this.xhr.open = XMLHttpRequest.prototype.open
         this.monitorResult = {}
     }
     addResult(type, result = {}) {
@@ -49,16 +51,19 @@ export default class ErrorMonitor {
                 return
             }
             const errorObject = e.target
-            this.xhr.open('HEAD', errorObject.src)
-            this.xhr.send()
-            this.xhr.onload = response => {
-                const resourceErrorMonitorResult = {
-                    type: 'ResourceError',
-                    outerHTML: errorObject.outerHTML,
-                    src: errorObject.src,
-                    status: response.status
+            if (errorObject.src) {
+                this.xhr.open('HEAD', errorObject.src)
+                this.xhr.send()
+                this.xhr.onload = response => {
+                    const resourceErrorMonitorResult = {
+                        type: 'ResourceError',
+                        outerHTML: errorObject.outerHTML,
+                        src: errorObject.src,
+                        status: response.target.status,
+                        response: response.target.responseText
+                    }
+                    this.addResult('resourceError', resourceErrorMonitorResult)
                 }
-                this.addResult('resourceError', resourceErrorMonitorResult)
             }
             return false
         }, true)
@@ -94,31 +99,31 @@ export default class ErrorMonitor {
             }
         }
         // XMLHttpRequest
-        // const originXhrOpen = XMLHttpRequest.prototype.open
-        // const originXhrSend = XMLHttpRequest.prototype.send
-        // const addResult = this.addResult
-        // let XMLMethod = 'GET'
-        // XMLHttpRequest.prototype.open = function (method, url) {
-        //     XMLMethod = method
-        //     originXhrOpen.apply(this, arguments)
-        // }
-        // XMLHttpRequest.prototype.send = function (data) {
-        //     const _this = this
-        //     originXhrSend.call(_this, data)
-        //     const oldOnReadyStateChange = _this.onreadystatechange
-        //     _this.onreadystatechange = function () {
-        //         if (_this.readyState === 4 && !/20[1-9]/.test(_this.status)) {
-        //             const xmlHttpError = {
-        //                 type: 'XMLHttpRequestError',
-        //                 src: _this.responseURL,
-        //                 method: XMLMethod,
-        //                 status: _this.status,
-        //                 response: _this.responseText
-        //             }
-        //             addResult('ajax', xmlHttpError)
-        //         }
-        //         oldOnReadyStateChange && oldOnReadyStateChange.apply(_this, arguments)
-        //     }
-        // }
+        const originXhrOpen = XMLHttpRequest.prototype.open
+        const originXhrSend = XMLHttpRequest.prototype.send
+        const addResult = this.addResult.bind(this)
+        let XMLMethod = 'GET'
+        XMLHttpRequest.prototype.open = function (method, url) {
+            XMLMethod = method
+            originXhrOpen.apply(this, arguments)
+        }
+        XMLHttpRequest.prototype.send = function (data) {
+            const _this = this
+            originXhrSend.call(_this, data)
+            const oldOnReadyStateChange = _this.onreadystatechange
+            _this.onreadystatechange = function () {
+                if (_this.readyState === 4 && !/20[1-9]/.test(_this.status)) {
+                    const xmlHttpError = {
+                        type: 'XMLHttpRequestError',
+                        src: _this.responseURL,
+                        method: XMLMethod,
+                        status: _this.status,
+                        response: _this.responseText
+                    }
+                    addResult('ajax', xmlHttpError)
+                }
+                oldOnReadyStateChange && oldOnReadyStateChange.apply(_this, arguments)
+            }
+        }
     }
 }

@@ -21,7 +21,7 @@
 
 <body>
     <!-- 标签资源请求error -->
-    <img src="/404.png">
+    <!-- <img src="/404.png"> -->
     <script>
         // 普通错误
         // error
@@ -41,7 +41,7 @@
         // ajax error
         fetch('/404.png')
         var xhr = new XMLHttpRequest()
-        xhr.open('HEAD', '/404.png')
+        xhr.open('GET', '/404.png')
         xhr.send()
     </script>
 </body>
