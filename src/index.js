@@ -13,7 +13,7 @@
 // limitations under the License.
 
 export default class ErrorMonitor {
-    constructor(options = {}) {
+    constructor (options = {}) {
         this.options = options
         this.xhr = new XMLHttpRequest()
         this.xhr.send = XMLHttpRequest.prototype.send
@@ -23,7 +23,7 @@ export default class ErrorMonitor {
     /**
      * 上报数据
      */
-    uploadMonitorLogs() {
+    uploadMonitorLogs () {
         if (this.options.url) {
             if (navigator.sendBeacon && typeof navigator.sendBeacon === 'function') {
                 const headers = {
@@ -52,7 +52,7 @@ export default class ErrorMonitor {
      * @param {String} type 错误类型
      * @param {Object} result 错误结果对象
      */
-    addResult(type, result = {}) {
+    addResult (type, result = {}) {
         result.time = new Date().getTime()
         result.url = window.location.href
         if (this.monitorResult[type]) {
@@ -64,7 +64,7 @@ export default class ErrorMonitor {
     /**
      * 初始化控件
      */
-    init() {
+    init () {
         /**
          * 监听普通Error抛出
          */
@@ -193,6 +193,22 @@ export default class ErrorMonitor {
         }
 
         /**
+         * 通过重写document.createElement自动为script添加crossOrigin
+         */
+        const crossOriginScriptErrorMonitor = () => {
+            document.createElement = (function () {
+                const fn = document.createElement.bind(document)
+                return function (type) {
+                    const result = fn(type)
+                    if (type === 'script') {
+                        result.crossOrigin = 'anonymous'
+                    }
+                    return result
+                }
+            })()
+        }
+
+        /**
          * 上报数据
          */
         const uploadResult = () => {
@@ -215,5 +231,6 @@ export default class ErrorMonitor {
         promiseErrorMonitor()
         ajaxErrorMonitor()
         uploadResult()
+        crossOriginScriptErrorMonitor()
     }
 }
