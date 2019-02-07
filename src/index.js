@@ -13,7 +13,7 @@
 // limitations under the License.
 
 export default class ErrorMonitor {
-    constructor (options = {}) {
+    constructor(options = {}) {
         this.options = options
         this.xhr = new XMLHttpRequest()
         this.xhr.send = XMLHttpRequest.prototype.send
@@ -23,22 +23,28 @@ export default class ErrorMonitor {
     /**
      * 上报数据
      */
-    uploadMonitorLogs () {
-        if (navigator.sendBeacon && typeof navigator.sendBeacon === 'function') {
-            const headers = {
-                type: 'application/json'
+    uploadMonitorLogs() {
+        if (this.options.url) {
+            if (navigator.sendBeacon && typeof navigator.sendBeacon === 'function') {
+                const headers = {
+                    type: 'application/json'
+                }
+                const blob = new window.Blob([JSON.stringify(this.monitorResult)], headers)
+                navigator.sendBeacon(this.options.url, blob)
+            } else if ('fetch' in window) {
+                window.fetch(this.options.url, {
+                    method: 'POST',
+                    body: JSON.stringify(this.monitorResult)
+                })
+            } else if ('XMLHttpRequest' in window && typeof window.XMLHttpRequest === 'function') {
+                const xhr = new window.XMLHttpRequest()
+                xhr.open('POST', this.options.url)
+                xhr.send(JSON.stringify(this.monitorResult))
             }
-            const blob = new window.Blob([JSON.stringify(this.monitorResult)], headers)
-            navigator.sendBeacon(this.options.url, blob)
-        } else if ('fetch' in window) {
-            window.fetch(this.options.url, {
-                method: 'POST',
-                body: JSON.stringify(this.monitorResult)
-            })
-        } else if ('XMLHttpRequest' in window && typeof window.XMLHttpRequest === 'function') {
-            const xhr = new window.XMLHttpRequest()
-            xhr.open('POST', this.options.url)
-            xhr.send(JSON.stringify(this.monitorResult))
+        } else {
+            if (window.localStorage) {
+                window.localStorage.setItem('errorLog', JSON.stringify(this.monitorResult))
+            }
         }
     }
     /**
@@ -46,7 +52,7 @@ export default class ErrorMonitor {
      * @param {String} type 错误类型
      * @param {Object} result 错误结果对象
      */
-    addResult (type, result = {}) {
+    addResult(type, result = {}) {
         result.time = new Date().getTime()
         result.url = window.location.href
         if (this.monitorResult[type]) {
@@ -58,7 +64,7 @@ export default class ErrorMonitor {
     /**
      * 初始化控件
      */
-    init () {
+    init() {
         /**
          * 监听普通Error抛出
          */
