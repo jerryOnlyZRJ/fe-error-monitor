@@ -271,6 +271,23 @@
         
 
 
+        var crossOriginScriptErrorMonitor = function crossOriginScriptErrorMonitor() {
+          document.createElement = function () {
+            var fn = document.createElement.bind(document);
+            return function (type) {
+              var result = fn(type);
+
+              if (type === 'script') {
+                result.crossOrigin = 'anonymous';
+              }
+
+              return result;
+            };
+          }();
+        };
+        
+
+
         var uploadResult = function uploadResult() {
           var oldOnload = window.onload;
 
@@ -293,6 +310,7 @@
         promiseErrorMonitor();
         ajaxErrorMonitor();
         uploadResult();
+        crossOriginScriptErrorMonitor();
       }
     }]);
 
